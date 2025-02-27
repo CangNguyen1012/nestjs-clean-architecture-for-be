@@ -1,13 +1,8 @@
-// import { Module } from '@nestjs/common';
-// import { TypeOrmModule } from '@nestjs/typeorm';
-// import { DatabaseService } from './database.service';
-// import { ExampleEntity } from './example.entity';
+import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { databaseConfig } from '../config/database.config';
 
-// @Module({
-//   imports: [
-//     TypeOrmModule.forFeature([ExampleEntity]),
-//   ],
-//   providers: [DatabaseService],
-//   exports: [DatabaseService],
-// })
-// export class DatabaseModule {}
+@Module({
+  imports: [MongooseModule.forRoot(databaseConfig.uri, databaseConfig.options)],
+})
+export class DatabaseModule {}
