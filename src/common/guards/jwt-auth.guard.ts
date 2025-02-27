@@ -1,4 +1,3 @@
-// # Guard to protect routes using JWT
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
@@ -12,14 +11,13 @@ export class JwtAuthGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-    const authHeader = request.headers.authorization;
+    const token = request.headers.authorization?.split(' ')[1];
 
-    if (!authHeader) return false;
+    if (!token) return false;
 
     try {
-      const token = authHeader.split(' ')[1];
-      const payload = this.jwtService.verify(token);
-      request.user = payload;
+      const decoded = this.jwtService.verify(token);
+      request.user = decoded;
       return true;
     } catch (error) {
       return false;

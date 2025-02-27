@@ -2,14 +2,23 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
-import * as cors from 'cors';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { RolesGuard } from './common/guards/roles.guard';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { setupSwagger } from './docs/swagger';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
+  const config = app.get<ConfigService>('configService');
+  const env = config.get<string>('NODE_ENV');
+
+  app.useGlobalGuards(new RolesGuard());
+
+  app.useGlobalFilters(new HttpExceptionFilter());
+
   // ✅ Enable CORS
-  app.use(cors());
+  app.enableCors();
 
   // ✅ Security: Add Helmet for security headers
   app.use(helmet());
@@ -27,17 +36,12 @@ async function bootstrap() {
   );
 
   // ✅ Setup Swagger (API Documentation)
-  const config = new DocumentBuilder()
-    .setTitle('Drink Ordering API')
-    .setDescription('API Documentation for the Drink Ordering App')
-    .setVersion('1.0')
-    .addBearerAuth() // Supports JWT Auth
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  if (env === 'development') {
+    setupSwagger(app); // Enable Swagger only in development
+  }
 
-  // ✅ Use Pino Logger (Fast logging)
-  app.useLogger(app.get(PinoLogger));
+  // ✅ Custom Logger
+  app.useLogger(app.get('logger'));
 
   // ✅ Handle Graceful Shutdown (Close DB connections, clean up)
   app.enableShutdownHooks();
@@ -49,4 +53,6 @@ async function bootstrap() {
   Logger.log(`🚀 Server running on http://localhost:${PORT}/api`, 'Bootstrap');
   Logger.log(`📜 Swagger Docs: http://localhost:${PORT}/api/docs`, 'Bootstrap');
 }
-bootstrap();
+bootstrap().catch((error: Error) => {
+  Logger.error(`❌ Error starting server: ${error.message}`, '', 'Bootstrap');
+});
